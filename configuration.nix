@@ -1,38 +1,38 @@
-# Edit this configuration file to define what should be installed on
-# your system.  Help is available in the configuration.nix(5) man page
-# and in the NixOS manual (accessible by running ‘nixos-help’).
-
 { config, pkgs, lib, ... }:
 let
   home-manager = builtins.fetchTarball "https://github.com/nix-community/home-manager/archive/release-22.11.tar.gz";
 in
 {
   imports = [
-    (import "${home-manager}/nixos")
-    ./hardware-configuration.nix
-  ];
+    # hardware-configuration.nix
+    /etc/nixos/hardware-configuration.nix # auto generated file. it contains detailed devices' data.
 
-  boot = {
-    loader = {
-      systemd-boot = {
-        enable = true;
-        consoleMode = "max";
-        editor = false;
-      };
-      efi = {
-        canTouchEfiVariables = true;
-        efiSysMountPoint = "/boot";
-      };
-    };
-  };
+    # bootLoader
+    ./lib/boot/systemd-boot.nix # systemd-boot
+    ./lib/boot/efi.nix # efi settings
+
+    # Audio
+    ./lib/audio/alsa.nix ## ALSA
+    ./lib/audio/pulseaudio/systemWide.nix ## pulseaudio using systemWide setting
+    #./lib/audio/pipewire/systemWide.nix ## pipewire using systemWide setting
+
+    # Packages
+    ./lib/environment/systemPackages.nix # manage system Packages. environment.systemPackages
+
+    # home-manager
+    (import "${home-manager}/nixos")
+
+    # GUI
+    ## Xorg
+    ./lib/Xorg/xserver.nix ## around X. startx set by this
+    ./lib/Xorg/i3.nix ## USE i3wm!!
+    ## Wayland
+    #./lib/wayland/sway.nix
+  ];
 
   system = {
     copySystemConfiguration = false;
     stateVersion = "22.11";
-  };
-
-  sound = {
-    enable = true;
   };
 
   hardware = {
@@ -44,10 +44,6 @@ in
         vaapiVdpau
         libvdpau-va-gl
       ];
-    };
-    pulseaudio = {
-      enable = true;
-      systemWide = true;
     };
     bluetooth = {
       enable = true;
@@ -96,13 +92,6 @@ in
     hostName = "dell-chan";
     networkmanager = {
       enable = true;
-    };
-    firewall = {
-      enable = false;
-      allowedTCPPorts = [
-        22
-        6600
-      ];
     };
   };
 
@@ -750,81 +739,6 @@ in
   };
 
   environment = {
-    systemPackages = with pkgs; [
-      # CLI
-      ## Common commands
-      vim
-      wget
-      tmux
-      alsa-utils
-      pulseaudio
-      w3m
-      neofetch
-
-      ## Networking
-      bridge-utils
-
-      ## system packages
-      alsa-lib
-      libudev-zero
-
-      ## Joke commands
-      cmatrix
-      sl
-
-      ## Programming langs
-      ### C language compiler
-      clang
-      ### Rust-lang
-      cargo
-      rustc
-      ### JavaScript runtime
-      deno
-      nodejs
-      ### Godot
-      godot
-      
-      # GUI
-      ## libvirt manager
-      virt-manager
-      virt-viewer
-
-      ## Browsers
-      chromium
-      firefox-wayland
-
-      ## Image viewers
-      imv
-      mpv
-
-      ## Image editors
-      gimp
-      blender
-
-      ## Audio editors
-      audacity
-
-      ## Recorders
-      grim
-      obs-studio
-      ffmpeg
-      wf-recorder
-      slurp
-
-      ## Terminals
-      xterm
-      alacritty
-      wezterm
-
-      ## Volumes
-      pavucontrol
-      helvum
-
-      # Unfree
-      google-chrome
-      discord
-      vscode
-    ];
     variables = {
       EDITOR = "vim";
     };
@@ -891,28 +805,6 @@ in
   };
 
   services = {
-    xserver = {
-      enable = true;
-      layout = "us";
-      libinput = {
-        enable = true;
-      };
-      displayManager = {
-        startx = {
-          enable = true;
-        };
-      };
-      windowManager = {
-        i3 = {
-          enable = true;
-          extraPackages = with pkgs; [
-            dmenu
-            i3status
-            i3lock
-          ];
-        };
-      };
-    };
     picom = {
       enable = true;
       vSync = true;
@@ -931,29 +823,6 @@ in
     openssh = {
       enable = true;
     };
-    #pipewire = {
-    #  enable = false;
-    #  systemWide = true;
-    #  wireplumber = {
-    #    enable = true;
-    #  };
-    #  alsa = {
-    #    enable = true;
-    #    support32Bit = true;
-    #  };
-    #  pulse.enable = true;
-    #  config = {
-    #    pipewire = {
-    #      context.properties = {
-    #        core.daemon = true;
-    #        support.dbus = true;
-    #      };
-    #      context.modules = {
-    #        name = "libpipewire-portal";
-    #      };
-    #    };
-    #  };
-    #};
   };
 
   virtualisation = {
