@@ -3,24 +3,16 @@
 # and in the NixOS manual (accessible by running ‘nixos-help’).
 
 { config, pkgs, lib, ... }:
-
+let
+  home-manager = builtins.fetchTarball "https://github.com/nix-community/home-manager/archive/release-22.11.tar.gz";
+in
 {
   imports = [
-    <home-manager/nixos>
+    (import "${home-manager}/nixos")
     ./hardware-configuration.nix
   ];
 
   boot = {
-    #extraModulePackages = with config.boot.kernelPackages; [
-    #  v4l2loopback.out
-    #];
-    #kernelModules = [
-    #  "v4l2loopback"
-    #  "snd-aloop"
-    #];
-    #extraModprobeConfig = ''
-    #  options v4l2loopback exclusive_caps=1 devices=1 card_label="Virtual Camera"
-    #'';
     loader = {
       systemd-boot = {
         enable = true;
@@ -35,7 +27,7 @@
   };
 
   system = {
-    #copySystemConfiguration = true;
+    copySystemConfiguration = false;
     stateVersion = "22.11";
   };
 
@@ -46,6 +38,12 @@
   hardware = {
     opengl = {
       enable = true;
+      extraPackages = with pkgs; [
+        intel-media-driver
+        vaapiIntel
+        vaapiVdpau
+        libvdpau-va-gl
+      ];
     };
     pulseaudio = {
       enable = true;
@@ -72,6 +70,9 @@
     ];
     config = {
       allowUnfree = true;
+      packageOverrides = pkgs: {
+        vaspiIntel = pkgs.vaapiIntel.override { enableHybridCodec = true; };
+      };
     };
   };
 
@@ -114,9 +115,6 @@
     };
     inputMethod = {
       enabled = "uim";
-      uim = {
-        toolbar = "gtk3-systray";
-      };
     };
   };
 
@@ -137,7 +135,7 @@
     users = {
       root = {
         isSystemUser = true;
-        hashedPassword = "$y$j9T$XnG1STlrSfhuEJkprMPX60$KW3eY3w/F2L.0vGemhdcX7Gi6oFvXAmHVu46bbEuZb7";
+        hashedPassword = "$y$j9T$l5Vt3mSGPDBPQmRV9K3mb0$uV7Amk7ut3..wNPrpQAG3QybE0wtnusWiqnctp7TTH5";
         extraGroups = [
           "root"
           "audio"
@@ -152,15 +150,6 @@
         extraGroups = [
           "wheel"
           "docker"
-          "audio"
-          "pulse-access"
-          "virsh"
-          "libvirtd"
-          #"pipewire"
-        ];
-      };
-      mpd = {
-        extraGroups = [
           "audio"
           "pulse-access"
           #"pipewire"
@@ -244,7 +233,7 @@
               colorscheme desert
             '';
             plugins = with pkgs.vimPlugins; [
-              coc-nvim
+              Vundle-vim
             ];
           };
           neovim = {
@@ -304,7 +293,7 @@
                 keybindings = {
                   "${cfg.modifier}+Return" = "exec --no-startup-id ${cfg.terminal}";
                   "${cfg.modifier}+t" = "exec --no-startup-id ${cfg.menu}";
-                  "${cfg.modifier}+Shift+b" = "exec --no-startup-id google-chrome-stable";
+                  "${cfg.modifier}+Shift+b" = "exec --no-startup-id chromium";
                   "${cfg.modifier}+Shift+d" = "exec --no-startup-id discord";
                   "${cfg.modifier}+p" = "exec --no-startup-id grim";
                   "${cfg.modifier}+Shift+i" = "exec --no-startup-id VirtualBox";
@@ -412,7 +401,7 @@
                 keybindings = {
                   "${cfg.modifier}+Return" = "exec --no-startup-id ${cfg.terminal}";
                   "${cfg.modifier}+t" = "exec --no-startup-id ${cfg.menu}";
-                  "${cfg.modifier}+Shift+b" = "exec --no-startup-id google-chrome-stable";
+                  "${cfg.modifier}+Shift+b" = "exec --no-startup-id MOZ_ENABLE_WAYLAND=1 firefox";
                   "${cfg.modifier}+Shift+d" = "exec --no-startup-id discord";
                   "${cfg.modifier}+p" = "exec --no-startup-id grim";
                   "${cfg.modifier}+Shift+i" = "exec --no-startup-id VirtualBox";
@@ -494,7 +483,8 @@
                 };
                 output = {
                   "*" = {
-                    bg = "/etc/wallpaper/nix-wallpaper-simple-dark-gray.png fill";
+                    #bg = "/etc/wallpaper/nix-wallpaper-simple-dark-gray.png fill";
+                    bg = "#404040 solid_color";
                   };
                 };
                 bars = [
@@ -577,6 +567,30 @@
               "color15" = "#d0d0d0";
             };
           };
+          alacritty = {
+            enable = true;
+            settings = {
+              font = {
+                size = 8.0;
+                normal = {
+                  family = "monospace";
+                  style = "Regulay";
+                };
+                bold = {
+                  family = "monospace";
+                  style = "Bold";
+                };
+                italic = {
+                  family = "monospace";
+                  style = "Italic";
+                };
+                bold_italic = {
+                  family = "monospace";
+                  style = "Bold Italic";
+                };
+              };
+            };
+          };
           foot = {
             enable = true;
             server.enable = true;
@@ -597,9 +611,18 @@
               mainBar = {
                 leyer = "top";
                 position = "top";
-                modules-left = [ "sway/workspaces" "sway/mode" ];
-                modules-center = [ "clock" "mpd" ];
-                modules-right = [ "network" "tray" ];
+                modules-left = [
+                  "sway/workspaces"
+                  "sway/mode"
+                ];
+                modules-center = [
+                  "clock"
+                  #"mpd"
+                ];
+                modules-right = [
+                  "network"
+                  "tray"
+                ];
                 "network" = {
                   "format" = "{ifname}";
                   "format-disconnected" = "disconnected";
@@ -656,17 +679,17 @@
                 padding: 0 5px;
                 background: #888888;
               }
-              #mpd {
-                border: 2px solid #696969;
-                padding: 0 5px;
-                background: #888888;
-              }
               #tray {
                 border: 2px solid #696969;
                 padding: 0 5px;
                 background: #888888;
               }
             '';
+              ##mpd {
+              #  border: 2px solid #696969;
+              #  padding: 0 5px;
+              #  background: #888888;
+              #}
           };
           swaylock = {
             settings = {
@@ -683,11 +706,22 @@
               syntax on
               set number
               colorscheme desert
+
+              " Vundle settings
+              set nocompatible
+              filetype off
+
+              set rtp+=~/.vim/bundle/Vundle.vim
+
+              call vundle#begin()
+              Plugin 'VundleVim/Vundle.vim'
+              Plugin 'Shougo/ddc.vim'
+              call vundle#end()
+
+              filetype plugin indent on
             '';
             plugins = with pkgs.vimPlugins; [
-              coc-nvim
-              molokai
-              vim-hybrid
+              Vundle-vim
             ];
           };
           neovim = {
@@ -724,7 +758,6 @@
       tmux
       alsa-utils
       pulseaudio
-      mpc-cli
       w3m
       neofetch
 
@@ -740,17 +773,16 @@
       sl
 
       ## Programming langs
+      ### C language compiler
+      clang
+      ### Rust-lang
+      cargo
+      rustc
+      ### JavaScript runtime
+      deno
       nodejs
-      #rustup
-      #go
-      #clang
-      #gcc
-      #clisp
-      #dotnet-sdk
-      #qemu
-      #processing
+      ### Godot
       godot
-      pkg-config
       
       # GUI
       ## libvirt manager
@@ -759,6 +791,7 @@
 
       ## Browsers
       chromium
+      firefox-wayland
 
       ## Image viewers
       imv
@@ -791,7 +824,6 @@
       google-chrome
       discord
       vscode
-      #minecraft
     ];
     variables = {
       EDITOR = "vim";
@@ -842,9 +874,6 @@
   programs = {
     zsh = {
       enable = true;
-      #promptInit = ''
-      #  
-      #'';
     };
     fish = {
       enable = true;
@@ -862,15 +891,6 @@
   };
 
   services = {
-    #greetd = {
-    #  enable = true;
-    #  settings = {
-    #    default_session = {
-    #      command = "${lib.makeBinPath [pkgs.greetd.tuigreet] }/tuigreet -c bash";
-    #      user = "greeter";
-    #    };
-    #  };
-    #};
     xserver = {
       enable = true;
       layout = "us";
@@ -908,10 +928,6 @@
       package = pkgs.postgresql;
       enable = true;
     };
-    #mysql = {
-    #  package = pkgs.mysql80;
-    #  enable = true;
-    #};
     openssh = {
       enable = true;
     };
@@ -938,37 +954,12 @@
     #    };
     #  };
     #};
-    mpd = {
-      enable = true;
-      network = {
-        port = 6600;
-        listenAddress = "any";
-      };
-      extraConfig = ''
-        restore_paused "yes"
-        audio_output {
-          type "pulse"
-          name "pulseaudio"
-        }
-      '';
-    };
   };
 
   virtualisation = {
-    #libvirtd = {
-    #  enable = true;
-    #  allowedBridges = [
-    #    "virbr0"
-    #  ];
-    #};
     docker = {
       enable = true;
     };
-    #virtualbox = {
-    #  host = {
-    #    enable = true;
-    #  };
-    #};
   };
 }
 
